@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class PainelPassageiro extends StatefulWidget {
 
@@ -16,6 +18,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
   final List<String> _itensMenu = [
     "Configurações","Deslogar"
   ];
+
+  final Completer<GoogleMapController> _googleMapController = Completer<GoogleMapController>();
 
   _selectionarMenu(String itemSelecionado){
 
@@ -58,6 +62,13 @@ class _PainelPassageiro extends State<PainelPassageiro> {
             },
           )
         ],
+      ),
+      body: GoogleMap(
+        onMapCreated: (controller) => _googleMapController.complete( controller ),
+        initialCameraPosition: const CameraPosition(
+          target: LatLng(-23.711993111425905, -46.6249616576713),
+          zoom: 16
+        )
       ),
     );
   }

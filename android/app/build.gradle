@@ -25,6 +25,16 @@ if (flutterVersionName == null) {
     flutterVersionName = '1.0'
 }
 
+def dartDefines = [:]
+if (project.hasProperty('dart-defines')) {
+    dartDefines = dartDefines + project.property('dart-defines')
+            .split(',')
+            .collectEntries { entry ->
+                def pair = new String(entry.decodeBase64(), 'UTF-8').split('=')
+                pair.length == 2 ? [(pair.first()): pair.last()] : [:]
+            }
+}
+
 android {
     namespace "com.example.uber_flutter_udemy"
     compileSdk flutter.compileSdkVersion
@@ -52,6 +62,7 @@ android {
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
+        resValue "string", "google_maps_api_key", dartDefines.GOOGLE_MAPS_API_KEY
     }
 
     buildTypes {
