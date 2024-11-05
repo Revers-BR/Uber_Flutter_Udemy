@@ -1,4 +1,6 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:uber_flutter_udemy/model/usuario.dart';
 
 class Login extends StatefulWidget {
 
@@ -10,9 +12,46 @@ class Login extends StatefulWidget {
 
 class _Login extends State<Login> {
 
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _senhaController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  final TextEditingController _emailController = TextEditingController(text: "passageiro@gmail.com");
+  final TextEditingController _senhaController = TextEditingController(text: "1234567");
+  
+  String _msgErro = "";
+
+  void _logarUsuario( ModelUsuario usuario){
+
+    _auth.signInWithEmailAndPassword(
+      email: usuario.email, 
+      password: usuario.senha
+    ).then(
+      (usuarioFirebase) => Navigator.pushNamedAndRemoveUntil(
+        context, 
+        "/painel-passageiro", 
+        (route) => false
+      )
+    );
+  }
+
+  void _validarDados(){
+
+    final email = _emailController.text;
+    final senha = _senhaController.text;
+
+    if((email.isNotEmpty && email.contains('@')) && senha.isNotEmpty){
+
+      final ModelUsuario usuario = ModelUsuario();
+
+      usuario.email = email;
+      usuario.senha = senha;
+
+      _logarUsuario(usuario);
+
+    }else {
+      setState(() => _msgErro = "Erro ao tentar se autenticar, verifique email e a senha!");
+    }
+  }
+  
   @override
   Widget build (BuildContext context) {
 
@@ -76,7 +115,7 @@ class _Login extends State<Login> {
                   ),
                 
                   ElevatedButton(
-                    onPressed: (){}, 
+                    onPressed: _validarDados, 
                     child: const Text("Entrar")
                   ),
                 
@@ -92,12 +131,12 @@ class _Login extends State<Login> {
                     ) 
                   ),
                 
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
                     child: Center(
                       child: Text(
-                        "Erro",
-                        style: TextStyle(
+                        _msgErro,
+                        style: const TextStyle(
                           color: Colors.red
                         ),
                       ),
