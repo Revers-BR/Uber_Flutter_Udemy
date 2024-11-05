@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
     }
   }
 
-static FirebaseOptions android = FirebaseOptions(
+static const FirebaseOptions android = FirebaseOptions(
     apiKey: String.fromEnvironment("apiKey"),
     appId: String.fromEnvironment("appId"),
     messagingSenderId: String.fromEnvironment("messagingSenderId"),

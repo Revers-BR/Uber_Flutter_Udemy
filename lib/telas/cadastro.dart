@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:uber_flutter_udemy/model/usuario.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Cadastro extends StatefulWidget {
 
@@ -10,10 +13,71 @@ class Cadastro extends StatefulWidget {
 
 class _Cadastro extends State<Cadastro> {
 
-  final TextEditingController _nomeController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _senhaController = TextEditingController();
+  final TextEditingController _nomeController = TextEditingController(text: "Motorista");
+  final TextEditingController _emailController = TextEditingController(text: "motorista@gmail.com");
+  final TextEditingController _senhaController = TextEditingController(text: "1234567");
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   bool _tipoUsuario = false;
+  String _msgErro = "";
+
+  void _cadastrarUsuario(ModelUsuario usuario){
+
+    _auth.createUserWithEmailAndPassword(
+      email: usuario.email, 
+      password: usuario.senha
+    ).then((usuarioFirebase){
+
+      usuario.idUsuario = usuarioFirebase.user!.uid;
+
+      _firestore.collection("Usuarios")
+        .doc(usuario.idUsuario)
+        .set( usuario.toMap())
+        .then((_){
+
+          String rota = "/painel-";
+
+          switch (usuario.getTipoUsuario) {
+            case "Motorista":
+              rota += "motorista";
+              break;
+            case "Passageiro":
+              rota += "passageiro";
+          }
+
+          Navigator.pushNamedAndRemoveUntil(context, rota, (route) => false);
+        }).catchError((_){
+          _msgErro = "Erro ao inserir dados no banco de dados!";
+        });
+    }).catchError((_){
+      _msgErro = "Erro ao cadastrar usuário!";
+    });
+  }
+
+  void _validarDados(){
+
+    final nome = _nomeController.text;
+    final email = _emailController.text;
+    final senha = _senhaController.text;
+
+    if(nome.isNotEmpty && (email.isNotEmpty && email.contains('@')) && senha.length > 6){
+
+      final ModelUsuario usuario = ModelUsuario();
+      usuario.email = email;
+      usuario.nome = nome;
+      usuario.senha = senha;
+      usuario.tipoUsuario = _tipoUsuario;
+
+      _cadastrarUsuario(usuario);
+
+    }else {
+      setState(() => _msgErro = 
+        "Verifique se campo nome, email, senha não está vazio\n\n"
+        "E se campo e-mail tem @, e senha tem no minimo 7 caracters"
+      );
+    }
+  }
 
   @override
   Widget build (BuildContext context) {
@@ -104,16 +168,16 @@ class _Cadastro extends State<Cadastro> {
                   ),
                 
                   ElevatedButton(
-                    onPressed: (){}, 
+                    onPressed: _validarDados, 
                     child: const Text("Cadastrar")
                   ),
                 
-                  const Padding(
-                    padding: EdgeInsets.only(top: 16),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
                     child: Center(
                       child: Text(
-                        "Erro",
-                        style: TextStyle(
+                        _msgErro,
+                        style: const TextStyle(
                           color: Colors.red
                         ),
                       ),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:uber_flutter_udemy/telas/cadastro.dart';
 import 'package:uber_flutter_udemy/telas/home.dart';
 import 'package:uber_flutter_udemy/telas/login.dart';
+import 'package:uber_flutter_udemy/telas/painel_motorista.dart';
+import 'package:uber_flutter_udemy/telas/painel_passageiro.dart';
 
 class Rotas {
 
@@ -18,6 +20,12 @@ class Rotas {
         break;
       case "/cadastro":
         tela = const Cadastro();
+        break;
+      case "/painel-passageiro":
+        tela = const PainelPassageiro();
+        break;
+      case "/painel-motorista":
+        tela = const PainelMotorista();
         break;
       default:
         tela = _ErroRota();
