@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uber_flutter_udemy/model/usuario.dart';
@@ -13,11 +14,13 @@ class Login extends StatefulWidget {
 class _Login extends State<Login> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final TextEditingController _emailController = TextEditingController(text: "passageiro@gmail.com");
   final TextEditingController _senhaController = TextEditingController(text: "1234567");
   
   String _msgErro = "";
+  bool _carregando = false;
 
   void _logarUsuario( ModelUsuario usuario){
 
@@ -25,15 +28,52 @@ class _Login extends State<Login> {
       email: usuario.email, 
       password: usuario.senha
     ).then(
-      (usuarioFirebase) => Navigator.pushNamedAndRemoveUntil(
-        context, 
-        "/painel-passageiro", 
-        (route) => false
-      )
-    );
+      (usuarioFirebase) => _redirecionaPainelPorTipoUsuario(usuarioFirebase.user!.uid)
+    ).catchError((_) => {
+      setState(() {
+        _msgErro = "Erro ao logar usuário, verifique email e senha!";
+        _carregando = false;
+      })
+    });
+  }
+
+  void _redirecionaPainelPorTipoUsuario(String idUsuario){
+
+    _firestore.collection("Usuarios")
+      .doc(idUsuario)
+      .get()
+      .then((documento){
+        final String tipoUsuario = documento["tipoUsuario"];
+
+        String rota = "/painel-";
+
+        switch (tipoUsuario) {
+          case "Motorista":
+            rota += "motorista";
+            break;
+          case "Passageiro":
+            rota += "passageiro";
+        }
+
+        setState(() => _carregando = false);
+
+        Navigator.pushNamedAndRemoveUntil(
+          context, 
+          rota, 
+          (route) => false
+        );
+      });
+  }
+
+  _verificarUsuarioLogado(){
+    final User? usuario = _auth.currentUser;
+
+    if(usuario != null) _redirecionaPainelPorTipoUsuario(usuario.uid);
   }
 
   void _validarDados(){
+
+    setState(() => _carregando = true);
 
     final email = _emailController.text;
     final senha = _senhaController.text;
@@ -48,10 +88,19 @@ class _Login extends State<Login> {
       _logarUsuario(usuario);
 
     }else {
-      setState(() => _msgErro = "Erro ao tentar se autenticar, verifique email e a senha!");
+      setState((){
+        _msgErro = "Erro ao tentar se autenticar, verifique email e a senha!";
+        _carregando = false;
+      });
     }
   }
   
+  @override
+  void initState() {
+    super.initState();
+    _verificarUsuarioLogado();
+  }
+
   @override
   Widget build (BuildContext context) {
 
@@ -130,17 +179,19 @@ class _Login extends State<Login> {
                       ),
                     ) 
                   ),
-                
+
                   Padding(
                     padding: const EdgeInsets.only(top: 16),
-                    child: Center(
-                      child: Text(
-                        _msgErro,
-                        style: const TextStyle(
-                          color: Colors.red
-                        ),
+                      child: Center(
+                        child: _carregando 
+                          ? const LinearProgressIndicator(color: Colors.white)
+                          : Text(
+                              _msgErro,
+                              style: const TextStyle(
+                                color: Colors.red
+                              ),
+                            ),
                       ),
-                    ),
                   )
                 ],
               ),

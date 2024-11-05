@@ -21,6 +21,7 @@ class _Cadastro extends State<Cadastro> {
 
   bool _tipoUsuario = false;
   String _msgErro = "";
+  bool _carregando = false;
 
   void _cadastrarUsuario(ModelUsuario usuario){
 
@@ -46,16 +47,26 @@ class _Cadastro extends State<Cadastro> {
               rota += "passageiro";
           }
 
+          setState(() => _carregando = false);
+
           Navigator.pushNamedAndRemoveUntil(context, rota, (route) => false);
         }).catchError((_){
-          _msgErro = "Erro ao inserir dados no banco de dados!";
+          setState(() {
+            _msgErro = "Erro ao inserir dados no banco de dados!";
+            _carregando = false;
+          });
         });
     }).catchError((_){
+      setState(() {
       _msgErro = "Erro ao cadastrar usuário!";
+      _carregando = false;
+      });
     });
   }
 
   void _validarDados(){
+
+    setState(() => _carregando = true);
 
     final nome = _nomeController.text;
     final email = _emailController.text;
@@ -72,10 +83,13 @@ class _Cadastro extends State<Cadastro> {
       _cadastrarUsuario(usuario);
 
     }else {
-      setState(() => _msgErro = 
-        "Verifique se campo nome, email, senha não está vazio\n\n"
-        "E se campo e-mail tem @, e senha tem no minimo 7 caracters"
-      );
+      setState((){
+        _msgErro = 
+          "Verifique se campo nome, email, senha não está vazio\n\n"
+          "E se campo e-mail tem @, e senha tem no minimo 7 caracters";
+
+        _carregando = false;
+      });
     }
   }
 
@@ -175,12 +189,14 @@ class _Cadastro extends State<Cadastro> {
                   Padding(
                     padding: const EdgeInsets.only(top: 16),
                     child: Center(
-                      child: Text(
-                        _msgErro,
-                        style: const TextStyle(
-                          color: Colors.red
-                        ),
-                      ),
+                      child: _carregando
+                        ? const LinearProgressIndicator(color: Colors.white)
+                        : Text(
+                            _msgErro,
+                            style: const TextStyle(
+                              color: Colors.red
+                            ),
+                          ),
                     ),
                   )
                 ],
