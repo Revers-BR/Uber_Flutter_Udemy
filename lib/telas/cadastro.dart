@@ -1,49 +1,57 @@
 import 'package:flutter/material.dart';
-import 'package:uber_flutter_udemy/telas/cadastro.dart';
 
-class Login extends StatefulWidget {
+class Cadastro extends StatefulWidget {
 
-  const Login({super.key});
+  const Cadastro({super.key});
 
   @override
-  State<Login> createState() => _Login(); 
+  State<Cadastro> createState() => _Cadastro();
 }
 
-class _Login extends State<Login> {
+class _Cadastro extends State<Cadastro> {
 
+  final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
+  bool _tipoUsuario = false;
 
   @override
   Widget build (BuildContext context) {
 
     return Scaffold(
-      body: Container(
+      appBar: AppBar(
+        title: const Text("Cadastro"),
+      ),
+        body: Container(
           padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage("imagens/fundo.png"),
-              fit: BoxFit.cover
-            )
-          ),
           child: Center(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Image.asset(
-                      "imagens/logo.png",
-                      width: 200, 
-                      height: 150
-                    ),
-                  ),
-                
+                children: [   
                   Padding(
                     padding: const EdgeInsets.only(top: 32),
                     child: TextField(
-                      controller: _emailController,
+                      controller: _nomeController,
                       autofocus: true,
+                      style: const TextStyle(fontSize: 20),
+                      keyboardType: TextInputType.text,
+                      decoration: InputDecoration(
+                        fillColor: Colors.white,
+                        filled: true,
+                        hintText: "Nome completo",
+                        contentPadding: const EdgeInsets.fromLTRB(32, 16, 32, 16),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(6)
+                        )
+                      ),
+                    ),
+                  ),
+   
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: TextField(
+                      controller: _emailController,
                       style: const TextStyle(fontSize: 20),
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
@@ -52,7 +60,7 @@ class _Login extends State<Login> {
                         hintText: "e-mail",
                         contentPadding: const EdgeInsets.fromLTRB(32, 16, 32, 16),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(32)
+                          borderRadius: BorderRadius.circular(6)
                         )
                       ),
                     ),
@@ -70,32 +78,34 @@ class _Login extends State<Login> {
                         hintText: "senha",
                         contentPadding: const EdgeInsets.fromLTRB(32, 16, 32, 16),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(32)
+                          borderRadius: BorderRadius.circular(6)
                         )
+                      ),
+                    ),
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 32),
+                    child: Center(
+                      child: Row(
+                        children: [
+                          const Text("Passageiro"),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Switch(
+                              value: _tipoUsuario, 
+                              onChanged: (valor) => setState(() => _tipoUsuario = valor),
+                            ),
+                          ),
+                          const Text("Motorista")
+                        ],
                       ),
                     ),
                   ),
                 
                   ElevatedButton(
                     onPressed: (){}, 
-                    child: const Text("Entrar")
-                  ),
-                
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                      context, 
-                      MaterialPageRoute(
-                        builder: (_) => const Cadastro()
-                      )
-                    ),
-                    child: const Center(
-                      child: Text(
-                        "Não tem conta? cadastre-se!",
-                        style: TextStyle(
-                          color: Colors.white
-                        ),
-                      ),
-                    ) 
+                    child: const Text("Cadastrar")
                   ),
                 
                   const Padding(
@@ -114,6 +124,7 @@ class _Login extends State<Login> {
             )
           ) 
         ),
+    
     );
   }
 }
