@@ -1,23 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:uber_flutter_udemy/telas/login.dart';
-
-final ThemeData temaPadrao = ThemeData(
-  appBarTheme: const AppBarTheme(
-    backgroundColor: Color(0xff546e7a),
-    foregroundColor: Colors.white
-  ),
-  elevatedButtonTheme: ElevatedButtonThemeData(
-    style: ButtonStyle(
-      foregroundColor: const MaterialStatePropertyAll(Colors.white),
-      backgroundColor: MaterialStatePropertyAll(Colors.blue[300])
-    )
-  )
-);
+import 'package:uber_flutter_udemy/config/rotas.dart';
+import 'package:uber_flutter_udemy/config/tema.dart';
 
 void main() {
   runApp(
     MaterialApp(
-      home: const Login(),
+      initialRoute: "/login",
+      onGenerateRoute: Rotas.gerarRotas,
       theme: temaPadrao
     )
   );

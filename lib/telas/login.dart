@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uber_flutter_udemy/telas/cadastro.dart';
 
 class Login extends StatefulWidget {
 
@@ -82,12 +81,7 @@ class _Login extends State<Login> {
                   ),
                 
                   GestureDetector(
-                    onTap: () => Navigator.push(
-                      context, 
-                      MaterialPageRoute(
-                        builder: (_) => const Cadastro()
-                      )
-                    ),
+                    onTap: () => Navigator.pushNamed(context, "/cadastro"),
                     child: const Center(
                       child: Text(
                         "Não tem conta? cadastre-se!",
