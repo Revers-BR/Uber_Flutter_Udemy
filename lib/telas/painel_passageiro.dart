@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:uber_flutter_udemy/model/destino.dart';
 
 class PainelPassageiro extends StatefulWidget {
 
@@ -23,6 +25,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
   ];
 
   final Completer<GoogleMapController> _googleMapController = Completer<GoogleMapController>();
+
+  final TextEditingController _destinoController = TextEditingController(text: "Estrada do rufino, 937");
 
   LocationPermission _locationPermission = LocationPermission.denied;
 
@@ -153,6 +157,80 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       _marcadores.add(marcadorPassageiro);
     });
   }
+
+  void _chamarUber() async {
+
+    final String enderecoDestino = _destinoController.text;
+
+    if(enderecoDestino.isNotEmpty){
+
+      final listaLocalizacao = await locationFromAddress(enderecoDestino);
+
+      if(listaLocalizacao.isNotEmpty){
+        final localizacao = listaLocalizacao[0];
+
+        final latitude = localizacao.latitude;
+        final longitude = localizacao.longitude;
+
+        final listaEndereco = await placemarkFromCoordinates(latitude, longitude);
+
+        if(listaEndereco.isNotEmpty){
+          final endereco = listaEndereco[0];
+
+          final cidade = endereco.administrativeArea;
+          final cep = endereco.postalCode;
+          final bairro = endereco.subLocality;
+          final rua = endereco.thoroughfare;
+          final numero = endereco.subThoroughfare;
+
+          final ModelDestino destino = ModelDestino(
+            cidade: cidade, 
+            cep: cep, 
+            bairro: bairro, 
+            rua: rua, 
+            numero: numero, 
+            latitude: latitude, 
+            longitude: longitude
+          );
+
+          String enderecoConfirmacao = "cidade : $cidade \n";
+          enderecoConfirmacao += "cep : $cep \n";
+          enderecoConfirmacao += "bairro : $bairro \n";
+          enderecoConfirmacao += "rua : $rua \n";
+          enderecoConfirmacao += "numero : $numero \n";
+
+          if(mounted){
+            showDialog(
+              context: context, 
+              builder: (context){
+                return AlertDialog(
+                  title: const Text("Confirma endereço?"),
+                  content: Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: Text(enderecoConfirmacao),
+                  ),
+                  actions: [
+                    ElevatedButton(
+                      style: const ButtonStyle(
+                        backgroundColor: MaterialStatePropertyAll(Colors.red)
+                      ),
+                      onPressed: () => Navigator.pop(context), 
+                      child: const Text("Cancelar")
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pop(context), 
+                      child: const Text("Confirmar")
+                    ),
+                  ],
+                );
+              }
+            );
+          }
+        }
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -231,8 +309,9 @@ class _PainelPassageiro extends State<PainelPassageiro> {
                   borderRadius: BorderRadius.circular(3),
                   color: Colors.white
                 ),
-                child: const TextField(
-                  decoration: InputDecoration(
+                child: TextField(
+                  controller: _destinoController,
+                  decoration: const InputDecoration(
                     prefixIcon: Icon(Icons.local_taxi, color: Colors.black),
                     contentPadding: EdgeInsets.fromLTRB(32,12,32,0),
                     hintText: "Digite o destino",
@@ -250,7 +329,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
             child: Padding(
               padding: const EdgeInsets.all(10),
               child: ElevatedButton(
-                onPressed: (){}, 
+                onPressed: _chamarUber, 
                 child: const Text("Chamar Uber")
               ),
             )
