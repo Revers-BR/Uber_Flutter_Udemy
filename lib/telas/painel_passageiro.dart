@@ -16,6 +16,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  final Set<Marker> _marcadores = {};
+
   final List<String> _itensMenu = [
     "Configurações","Deslogar"
   ];
@@ -60,6 +62,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
         final latitude = position.latitude;
         final longitude = position.longitude;
 
+        _exibirMarcadores(position);
+
         setState(() {
           _cameraPosition = CameraPosition(
             target: LatLng(latitude, longitude),
@@ -93,6 +97,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       final latitude = position.latitude;
       final longitude = position.longitude;
 
+      _exibirMarcadores(position);
+
       setState(() {
         _cameraPosition = CameraPosition(
           target: LatLng(latitude, longitude),
@@ -122,6 +128,31 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     }
   }
 
+  void _exibirMarcadores(Position position){
+
+    final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+
+    final ImageConfiguration configuration = ImageConfiguration(
+      devicePixelRatio: devicePixelRatio
+    );
+
+    const assetName = "imagens/passageiro.png";
+    
+    // ignore: deprecated_member_use
+    BitmapDescriptor.fromAssetImage(configuration, assetName).then((icon){
+      final latitude = position.latitude;
+      final longitude = position.longitude;
+
+      final Marker marcadorPassageiro = Marker(
+        markerId: const MarkerId("marcador-passageiro"),
+        position: LatLng(latitude, longitude), 
+        infoWindow: const InfoWindow(title: "meu local"),
+        icon: icon
+      );
+
+      _marcadores.add(marcadorPassageiro);
+    });
+  }
   @override
   void initState() {
     super.initState();
@@ -157,7 +188,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
           GoogleMap(
             onMapCreated: (controller) => _googleMapController.complete( controller ),
             initialCameraPosition: _cameraPosition,
-            myLocationEnabled: true,
+            //myLocationEnabled: true,
+            markers: _marcadores,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
           ),
