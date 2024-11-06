@@ -29,7 +29,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
           zoom: 16
   );
 
-  _selectionarMenu(String itemSelecionado){
+  void _selectionarMenu(String itemSelecionado){
 
     switch (itemSelecionado) {
       case "Configurações":
@@ -72,7 +72,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     });
   }
 
-  _movimentarCameraPosicao(CameraPosition cameraPosition){
+  void _movimentarCameraPosicao(CameraPosition cameraPosition){
     
     _googleMapController.future.then((googleMapController){
       googleMapController.moveCamera(
@@ -81,7 +81,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     });
   }
 
-  _addListenerPosicao(){
+  void _addListenerPosicao(){
 
     const LocationSettings locationSettings = LocationSettings(
       accuracy: LocationAccuracy.high,
@@ -104,7 +104,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     });
   }
 
-  _checkPermission() async {
+  void _checkPermission() async {
 
     final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
@@ -152,11 +152,79 @@ class _PainelPassageiro extends State<PainelPassageiro> {
           )
         ],
       ),
-      body: GoogleMap(
-        onMapCreated: (controller) => _googleMapController.complete( controller ),
-        initialCameraPosition: _cameraPosition,
-        myLocationEnabled: true,
-      ),
+      body: Stack(
+        children: [
+          GoogleMap(
+            onMapCreated: (controller) => _googleMapController.complete( controller ),
+            initialCameraPosition: _cameraPosition,
+            myLocationEnabled: true,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+          ),
+          
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(3),
+                  color: Colors.white
+                ),
+                child: const TextField(
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.location_on, color: Colors.grey),
+                    contentPadding: EdgeInsets.fromLTRB(32,12,32,0),
+                    hintText: "Meu local",
+                    border: InputBorder.none,
+                  ),
+                ),
+              )
+            )
+          ),
+
+          Positioned(
+            left: 0,
+            right: 0,
+            top: 55,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(3),
+                  color: Colors.white
+                ),
+                child: const TextField(
+                  decoration: InputDecoration(
+                    prefixIcon: Icon(Icons.local_taxi, color: Colors.black),
+                    contentPadding: EdgeInsets.fromLTRB(32,12,32,0),
+                    hintText: "Digite o destino",
+                    border: InputBorder.none,
+                  ),
+                ),
+              )
+            )
+          ), 
+        
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: ElevatedButton(
+                onPressed: (){}, 
+                child: const Text("Chamar Uber")
+              ),
+            )
+          )
+        ],
+      ), 
     );
   }
 }
