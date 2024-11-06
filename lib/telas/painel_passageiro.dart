@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class PainelPassageiro extends StatefulWidget {
@@ -20,6 +21,13 @@ class _PainelPassageiro extends State<PainelPassageiro> {
   ];
 
   final Completer<GoogleMapController> _googleMapController = Completer<GoogleMapController>();
+
+  LocationPermission _locationPermission = LocationPermission.denied;
+
+  CameraPosition _cameraPosition = const CameraPosition(
+          target: LatLng(-23.711993111425905, -46.6249616576713),
+          zoom: 16
+  );
 
   _selectionarMenu(String itemSelecionado){
 
@@ -41,6 +49,87 @@ class _PainelPassageiro extends State<PainelPassageiro> {
         (route) => false
       )
     );
+  }
+
+  void _recuperaUltimaLocalizacao(){
+
+    Geolocator.getLastKnownPosition().then((position){
+      
+      if(position != null){
+
+        final latitude = position.latitude;
+        final longitude = position.longitude;
+
+        setState(() {
+          _cameraPosition = CameraPosition(
+            target: LatLng(latitude, longitude),
+            zoom: 19
+          );
+
+          _movimentarCameraPosicao(_cameraPosition);
+        });
+      }
+    });
+  }
+
+  _movimentarCameraPosicao(CameraPosition cameraPosition){
+    
+    _googleMapController.future.then((googleMapController){
+      googleMapController.moveCamera(
+        CameraUpdate.newCameraPosition(cameraPosition)
+      );
+    });
+  }
+
+  _addListenerPosicao(){
+
+    const LocationSettings locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 1
+    );
+
+    Geolocator.getPositionStream(locationSettings: locationSettings).listen((position) {
+
+      final latitude = position.latitude;
+      final longitude = position.longitude;
+
+      setState(() {
+        _cameraPosition = CameraPosition(
+          target: LatLng(latitude, longitude),
+          zoom: 18
+        );
+
+        _movimentarCameraPosicao(_cameraPosition);
+      });
+    });
+  }
+
+  _checkPermission() async {
+
+    final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+    if(!serviceEnabled)return Future.error("Serviço de localização desativado!");
+
+    _locationPermission = await Geolocator.checkPermission();
+
+    if(_locationPermission == LocationPermission.deniedForever)return Future.error("Permissão de localização está sempre negado, não iremos requisitar permissão novamente!"); 
+
+    if(_locationPermission == LocationPermission.denied){
+
+      _locationPermission = await Geolocator.requestPermission();
+
+      if(_locationPermission == LocationPermission.denied)return Future.error("Permissao de localização foi negado!");
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if(_locationPermission != LocationPermission.always){
+      _checkPermission();
+    }
+     _recuperaUltimaLocalizacao();
+     _addListenerPosicao();
   }
 
   @override
@@ -65,10 +154,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       ),
       body: GoogleMap(
         onMapCreated: (controller) => _googleMapController.complete( controller ),
-        initialCameraPosition: const CameraPosition(
-          target: LatLng(-23.711993111425905, -46.6249616576713),
-          zoom: 16
-        )
+        initialCameraPosition: _cameraPosition,
+        myLocationEnabled: true,
       ),
     );
   }
