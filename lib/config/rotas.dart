@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:uber_flutter_udemy/telas/cadastro.dart';
+import 'package:uber_flutter_udemy/telas/corrida.dart';
 import 'package:uber_flutter_udemy/telas/home.dart';
 import 'package:uber_flutter_udemy/telas/login.dart';
 import 'package:uber_flutter_udemy/telas/painel_motorista.dart';
@@ -8,6 +9,8 @@ import 'package:uber_flutter_udemy/telas/painel_passageiro.dart';
 class Rotas {
 
   static Route<dynamic> gerarRotas(RouteSettings settings) {
+
+    final args = settings.arguments;
 
     Widget tela = const Home();
 
@@ -20,6 +23,9 @@ class Rotas {
         break;
       case "/cadastro":
         tela = const Cadastro();
+        break;
+      case "/corrida":
+        tela = Corrida(idRequisicao: args as String);
         break;
       case "/painel-passageiro":
         tela = const PainelPassageiro();

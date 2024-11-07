@@ -1,5 +1,8 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:uber_flutter_udemy/util/status_requisicao.dart';
 
 class PainelMotorista extends StatefulWidget {
 
@@ -13,11 +16,15 @@ class _PainelMotorista extends State<PainelMotorista> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  final StreamController<QuerySnapshot> _streamController = StreamController.broadcast();
+
   final List<String> _itensMenu = [
     "Configurações","Deslogar"
   ];
 
-  _selectionarMenu(String itemSelecionado){
+  void _selectionarMenu(String itemSelecionado){
 
     switch (itemSelecionado) {
       case "Configurações":
@@ -39,6 +46,20 @@ class _PainelMotorista extends State<PainelMotorista> {
     );
   }
 
+  void _adicionarListenerRequisicao(){
+
+    _firestore.collection("Requisicoes")
+      .where("status", isEqualTo: StatusRequisicao.aguardando)
+      .snapshots()
+      .listen(_streamController.add);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _adicionarListenerRequisicao();
+  }
+
   @override
   Widget build (BuildContext context ) {
 
@@ -58,6 +79,57 @@ class _PainelMotorista extends State<PainelMotorista> {
             },
           )
         ],
+      ),
+      
+      body: StreamBuilder(
+        stream: _streamController.stream, 
+        builder: (context, snapshot) {
+
+          switch (snapshot.connectionState) {
+            case ConnectionState.none:
+            case ConnectionState.waiting:
+              return const Center(
+                child: Column(
+                  children: [
+                    Text("Carregando requisições...."),
+                    LinearProgressIndicator()
+                  ],
+                ),
+              );
+            case ConnectionState.active:
+            case ConnectionState.done:
+              
+              if(snapshot.hasError)return const Center( child: Text("Erro ao carregar requisições"));
+
+              if(!snapshot.hasData || snapshot.data!.docs.isEmpty)return const Center( child: Text("Você não tem requisição disponivel!"));
+
+              final List<DocumentSnapshot> lista = snapshot.data!.docs;
+
+              return ListView.separated(
+                itemCount: lista.length,
+                separatorBuilder: (_, __) => const Divider(color: Colors.grey), 
+                itemBuilder: (___, index) {
+
+                  final requisicao = lista[index];
+
+                  final nome = requisicao["passageiro"]["nome"];
+                  final rua = requisicao["destino"]["rua"];
+                  final numero = requisicao["destino"]["numero"];
+                  final idRequisicao = requisicao["id"];
+
+                  return ListTile(
+                    title: Text(nome),
+                    onTap: () => Navigator.pushNamed(
+                      context, 
+                      "/corrida",
+                      arguments: idRequisicao,
+                    ),
+                    subtitle: Text("Destino: $rua, $numero"),
+                  );
+                }, 
+              );
+          }
+        },
       ),
     );
   }
