@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:uber_flutter_udemy/model/destino.dart';
+import 'package:uber_flutter_udemy/model/requisicao.dart';
+import 'package:uber_flutter_udemy/model/usuario.dart';
+import 'package:uber_flutter_udemy/util/usuario_firebase.dart';
 
 class PainelPassageiro extends StatefulWidget {
 
@@ -218,7 +222,10 @@ class _PainelPassageiro extends State<PainelPassageiro> {
                       child: const Text("Cancelar")
                     ),
                     ElevatedButton(
-                      onPressed: () => Navigator.pop(context), 
+                      onPressed: (){
+                        _salvarRequisicao(destino);
+                        Navigator.pop(context);
+                      }, 
                       child: const Text("Confirmar")
                     ),
                   ],
@@ -229,6 +236,18 @@ class _PainelPassageiro extends State<PainelPassageiro> {
         }
       }
     }
+  }
+
+  _salvarRequisicao( ModelDestino destino) async {
+
+    final ModelUsuario passageiro =  await UsuarioFirebase.getDadosUsuario();
+
+    final ModelRequisicao requisicao = ModelRequisicao(passageiro: passageiro, destino: destino);
+
+    final FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+    firestore.collection("Requisicoes")
+      .add( requisicao.toMap() );
   }
 
   @override

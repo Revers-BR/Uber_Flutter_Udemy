@@ -18,4 +18,17 @@ class ModelDestino {
     required this.latitude,
     required this.longitude,
   });
+
+  Map<String, dynamic> toMap (){
+
+    return {
+      "cidade"    : cidade, 
+      "cep"       : cep,
+      "bairro"    : bairro,
+      "rua"       : rua,
+      "numero"    : numero,
+      "latitude"  : latitude,
+      "longitude" : longitude,
+    };
+  }
 }
