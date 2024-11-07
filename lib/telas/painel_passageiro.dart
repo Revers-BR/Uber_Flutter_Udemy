@@ -7,7 +7,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:uber_flutter_udemy/model/destino.dart';
 import 'package:uber_flutter_udemy/model/requisicao.dart';
+import 'package:uber_flutter_udemy/model/requisicao_ativa.dart';
 import 'package:uber_flutter_udemy/model/usuario.dart';
+import 'package:uber_flutter_udemy/util/status_requisicao.dart';
 import 'package:uber_flutter_udemy/util/usuario_firebase.dart';
 
 class PainelPassageiro extends StatefulWidget {
@@ -21,6 +23,8 @@ class PainelPassageiro extends StatefulWidget {
 class _PainelPassageiro extends State<PainelPassageiro> {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final Set<Marker> _marcadores = {};
 
@@ -36,9 +40,10 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
   bool _exibirCaixaDestino = true;
   String _textoBotao = "Chamar uber";
-  void Function()? _funcaoBotao;
+  Function? _funcaoBotao;
   Color? _corBotao = Colors.blue[300];
 
+  String? _idRequisicao;
 
   CameraPosition _cameraPosition = const CameraPosition(
           target: LatLng(-23.711993111425905, -46.6249616576713),
@@ -253,9 +258,18 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
     firestore.collection("Requisicoes")
-      .add( requisicao.toMap() );
+      .doc(requisicao.id)
+      .set( requisicao.toMap() );
 
-    _statusCancelarUber();
+    final RequisicaoAtiva requisicaoAtiva = RequisicaoAtiva(
+      idRequisicao: requisicao.id, 
+      idUsuario: passageiro.idUsuario!, 
+      status: requisicao.status
+    );
+
+    _firestore.collection("requisicao_ativa")
+      .doc(requisicaoAtiva.idUsuario)
+      .set( requisicaoAtiva.toMap() );
   }
 
   void _alterarBotaoPrincipal(String texto, Color cor, Function funcao){
@@ -263,7 +277,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     setState(() {
       _textoBotao = texto;
       _corBotao = cor;
-      _funcaoBotao = () => funcao();
+      _funcaoBotao = funcao;
     });
   }
 
@@ -284,9 +298,52 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
     _alterarBotaoPrincipal(
       "Cancelar", 
-      Colors.red, 
-      _statusUberNaoChamado
+      Colors.red,
+      _cancelarUber
     );
+  }
+
+  void _cancelarUber(){
+
+    _firestore.collection("Requisicoes")
+      .doc(_idRequisicao)
+      .update({
+        "status": StatusRequisicao.cancelado
+      }).then((_){
+
+        final idUsuario = UsuarioFirebase.getUsuarioAtual().uid;
+
+        _firestore.collection("requisicao_ativa")
+          .doc(idUsuario)
+          .delete();
+      });
+  }
+
+  void _adicionarListenerRequisicaoAtiva(){
+
+    final User passageiro = UsuarioFirebase.getUsuarioAtual();
+    
+    _firestore.collection("requisicao_ativa")
+      .doc(passageiro.uid)
+      .snapshots()
+      .listen((documento) {
+
+        final data = documento.data();
+
+        if(data != null){
+
+         _idRequisicao = data["idRequisicao"];
+         final status       = data["status"];
+
+         switch (status) {
+           case StatusRequisicao.aguardando:
+             _statusCancelarUber();
+             break;
+         } 
+        }else {
+          _statusUberNaoChamado();
+        }
+      });
   }
 
   @override
@@ -297,7 +354,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     }
      _recuperaUltimaLocalizacao();
      _addListenerPosicao();
-     _statusUberNaoChamado();
+     _adicionarListenerRequisicaoAtiva();
   }
 
   @override
@@ -399,7 +456,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
                 style: ButtonStyle(
                   backgroundColor: MaterialStatePropertyAll(_corBotao)
                 ),
-                onPressed: _funcaoBotao, 
+                onPressed: () => _funcaoBotao!(), 
                 child: Text(_textoBotao)
               ),
             )
