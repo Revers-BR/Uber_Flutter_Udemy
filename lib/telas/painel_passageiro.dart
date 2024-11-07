@@ -34,6 +34,12 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
   LocationPermission _locationPermission = LocationPermission.denied;
 
+  bool _exibirCaixaDestino = true;
+  String _textoBotao = "Chamar uber";
+  void Function()? _funcaoBotao;
+  Color? _corBotao = Colors.blue[300];
+
+
   CameraPosition _cameraPosition = const CameraPosition(
           target: LatLng(-23.711993111425905, -46.6249616576713),
           zoom: 16
@@ -238,7 +244,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     }
   }
 
-  _salvarRequisicao( ModelDestino destino) async {
+  void _salvarRequisicao( ModelDestino destino) async {
 
     final ModelUsuario passageiro =  await UsuarioFirebase.getDadosUsuario();
 
@@ -248,6 +254,39 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
     firestore.collection("Requisicoes")
       .add( requisicao.toMap() );
+
+    _statusCancelarUber();
+  }
+
+  void _alterarBotaoPrincipal(String texto, Color cor, Function funcao){
+
+    setState(() {
+      _textoBotao = texto;
+      _corBotao = cor;
+      _funcaoBotao = () => funcao();
+    });
+  }
+
+  void _statusUberNaoChamado(){
+
+    _exibirCaixaDestino = true;
+
+    _alterarBotaoPrincipal(
+      "Chamar uber", 
+      Colors.blue[300]!,
+      _chamarUber
+    );
+  }
+
+  void _statusCancelarUber(){
+
+    _exibirCaixaDestino = false;
+
+    _alterarBotaoPrincipal(
+      "Cancelar", 
+      Colors.red, 
+      _statusUberNaoChamado
+    );
   }
 
   @override
@@ -258,6 +297,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     }
      _recuperaUltimaLocalizacao();
      _addListenerPosicao();
+     _statusUberNaoChamado();
   }
 
   @override
@@ -291,56 +331,64 @@ class _PainelPassageiro extends State<PainelPassageiro> {
             zoomControlsEnabled: false,
           ),
           
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 0,
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(3),
-                  color: Colors.white
+          Visibility(
+            visible: _exibirCaixaDestino,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(3),
+                        color: Colors.white
+                      ),
+                      child: const TextField(
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          prefixIcon: Icon(Icons.location_on, color: Colors.grey),
+                          contentPadding: EdgeInsets.fromLTRB(32,12,32,0),
+                          hintText: "Meu local",
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    )
+                  )
                 ),
-                child: const TextField(
-                  readOnly: true,
-                  decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.location_on, color: Colors.grey),
-                    contentPadding: EdgeInsets.fromLTRB(32,12,32,0),
-                    hintText: "Meu local",
-                    border: InputBorder.none,
-                  ),
-                ),
-              )
+
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 55,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(3),
+                        color: Colors.white
+                      ),
+                      child: TextField(
+                        controller: _destinoController,
+                        decoration: const InputDecoration(
+                          prefixIcon: Icon(Icons.local_taxi, color: Colors.black),
+                          contentPadding: EdgeInsets.fromLTRB(32,12,32,0),
+                          hintText: "Digite o destino",
+                          border: InputBorder.none,
+                        ),
+                      ),
+                    )
+                  )
+                ), 
+
+              ],
             )
           ),
-
-          Positioned(
-            left: 0,
-            right: 0,
-            top: 55,
-            child: Padding(
-              padding: const EdgeInsets.all(10),
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(3),
-                  color: Colors.white
-                ),
-                child: TextField(
-                  controller: _destinoController,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.local_taxi, color: Colors.black),
-                    contentPadding: EdgeInsets.fromLTRB(32,12,32,0),
-                    hintText: "Digite o destino",
-                    border: InputBorder.none,
-                  ),
-                ),
-              )
-            )
-          ), 
-        
+          
           Positioned(
             bottom: 0,
             left: 0,
@@ -348,8 +396,11 @@ class _PainelPassageiro extends State<PainelPassageiro> {
             child: Padding(
               padding: const EdgeInsets.all(10),
               child: ElevatedButton(
-                onPressed: _chamarUber, 
-                child: const Text("Chamar Uber")
+                style: ButtonStyle(
+                  backgroundColor: MaterialStatePropertyAll(_corBotao)
+                ),
+                onPressed: _funcaoBotao, 
+                child: Text(_textoBotao)
               ),
             )
           )
