@@ -95,9 +95,21 @@ class _Corrida extends State<Corrida> {
 
   void _movimentarCameraPosicao(CameraPosition cameraPosition){
     
+    // _googleMapController.future.then((googleMapController){
+    //   googleMapController.moveCamera(
+    //     CameraUpdate.newCameraPosition(cameraPosition)
+    //   );
+    // });
+  }
+
+  void _movimentarCameraBounds(LatLngBounds latLngBounds){
+    
     _googleMapController.future.then((googleMapController){
       googleMapController.moveCamera(
-        CameraUpdate.newCameraPosition(cameraPosition)
+        CameraUpdate.newLatLngBounds(
+          latLngBounds, 
+          100
+        )
       );
     });
   }
@@ -233,6 +245,35 @@ class _Corrida extends State<Corrida> {
     );
 
     _exibirDoisMarcadores(posicaoPassageiro, posicaoMotorista);
+
+    double sLat, nLat, sLon, nLon;
+
+    if(posicaoMotorista.latitude <= posicaoPassageiro.latitude){
+      sLat = posicaoMotorista.latitude;
+      nLat = posicaoPassageiro.latitude;
+    }else{
+      sLat = posicaoPassageiro.latitude;
+      nLat = posicaoMotorista.latitude;
+    }
+
+    if(posicaoMotorista.longitude <= posicaoPassageiro.longitude){
+      sLon = posicaoMotorista.longitude;
+      nLon = posicaoPassageiro.longitude;
+    }else{
+      sLon = posicaoPassageiro.longitude;
+      nLon = posicaoMotorista.longitude;
+    }
+
+    LatLng southwest = LatLng( sLat, sLon);
+
+    LatLng northeast = LatLng(nLat, nLon );
+
+    LatLngBounds latLngBounds = LatLngBounds(
+      southwest: southwest, 
+      northeast: northeast
+    );
+
+    _movimentarCameraBounds(latLngBounds);
   }
 
   void _aceitarCorrida(){
