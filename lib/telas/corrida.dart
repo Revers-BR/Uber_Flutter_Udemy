@@ -19,14 +19,14 @@ class Corrida extends StatefulWidget {
 
 class _Corrida extends State<Corrida> {
 
-  final Set<Marker> _marcadores = {};
-
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   final Completer<GoogleMapController> _googleMapController = Completer<GoogleMapController>();
 
   LocationPermission _locationPermission = LocationPermission.denied;
 
+  Set<Marker> _marcadores = {};
+  
   Position? _localPosicaoMotorista;
 
   Map<String, dynamic> _dadosRequisicao = {};
@@ -60,28 +60,37 @@ class _Corrida extends State<Corrida> {
 
   void _exibirMarcadores(Position position){
 
+    _criarMarcador(
+      "motorista", 
+      LatLng(
+        position.latitude, 
+        position.longitude
+      ), "motorista",
+       "meu local"
+    ).then((marcador) => _marcadores.add(marcador));
+  }
+
+  Future<Marker> _criarMarcador(String icone, LatLng posicao, String idMarcador, String titulo) async {
+    
     final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
 
     final ImageConfiguration configuration = ImageConfiguration(
       devicePixelRatio: devicePixelRatio
     );
 
-    const assetName = "imagens/motorista.png";
+    final assetName = "imagens/$icone.png";
     
     // ignore: deprecated_member_use
-    BitmapDescriptor.fromAssetImage(configuration, assetName).then((icon){
-      final latitude = position.latitude;
-      final longitude = position.longitude;
+    final icon = await BitmapDescriptor.fromAssetImage(configuration, assetName);
+      
+    final Marker marcador = Marker(
+      markerId: MarkerId("marcador-$idMarcador"),
+      position: posicao, 
+      infoWindow: InfoWindow(title: titulo),
+      icon: icon
+    );
 
-      final Marker marcadorPassageiro = Marker(
-        markerId: const MarkerId("marcador-motorista"),
-        position: LatLng(latitude, longitude), 
-        infoWindow: const InfoWindow(title: "meu local"),
-        icon: icon
-      );
-
-      _marcadores.add(marcadorPassageiro);
-    });
+    return marcador;
   }
 
   void _movimentarCameraPosicao(CameraPosition cameraPosition){
@@ -190,6 +199,21 @@ class _Corrida extends State<Corrida> {
     );
   }
 
+  void _exibirDoisMarcadores(LatLng posicaoPassageiro, LatLng posicaoMotorista) async {
+
+    final Set<Marker> marcadores = {};
+
+    final marcadorMotorista  = await _criarMarcador("motorista", posicaoMotorista, "motorista", "Localização do motorista");
+
+    final marcadorPassageiro = await _criarMarcador("passageiro", posicaoPassageiro, "passageiro", "Localização do passageiro");
+
+    marcadores.addAll({
+      marcadorPassageiro,
+      marcadorMotorista
+    });
+    setState(() => _marcadores = marcadores);
+  }
+
   void _statusACaminho(){
 
     _alterarBotaoPrincipal(
@@ -197,6 +221,18 @@ class _Corrida extends State<Corrida> {
       Colors.grey,
       null,
     );
+
+    LatLng posicaoPassageiro = LatLng(
+      _dadosRequisicao["passageiro"]["latitude"], 
+      _dadosRequisicao["passageiro"]["longitude"]
+    );
+
+    LatLng posicaoMotorista = LatLng(
+      _dadosRequisicao["motorista"]["latitude"], 
+      _dadosRequisicao["motorista"]["longitude"]
+    );
+
+    _exibirDoisMarcadores(posicaoPassageiro, posicaoMotorista);
   }
 
   void _aceitarCorrida(){
@@ -297,7 +333,7 @@ class _Corrida extends State<Corrida> {
                 style: ButtonStyle(
                   backgroundColor: MaterialStatePropertyAll(_corBotao)
                 ),
-                onPressed: _funcaoBotao != null 
+                onPressed: () => _funcaoBotao != null 
                   ? _funcaoBotao!() 
                   : null, 
                 child: Text(_textoBotao)

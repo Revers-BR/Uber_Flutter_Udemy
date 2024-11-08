@@ -38,6 +38,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
   LocationPermission _locationPermission = LocationPermission.denied;
 
+  Position? _localPosicaoPassageiro;
+
   bool _exibirCaixaDestino = true;
   String _textoBotao = "Chamar uber";
   Function? _funcaoBotao;
@@ -90,6 +92,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
           );
 
           _movimentarCameraPosicao(_cameraPosition);
+
+          _localPosicaoPassageiro = position;
         });
       }
     });
@@ -125,6 +129,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
         );
 
         _movimentarCameraPosicao(_cameraPosition);
+
+        _localPosicaoPassageiro = position;
       });
     });
   }
@@ -252,6 +258,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
   void _salvarRequisicao( ModelDestino destino) async {
 
     final ModelUsuario passageiro =  await UsuarioFirebase.getDadosUsuario();
+    passageiro.latitude = _localPosicaoPassageiro!.latitude;
+    passageiro.longitude = _localPosicaoPassageiro!.longitude;
 
     final ModelRequisicao requisicao = ModelRequisicao(passageiro: passageiro, destino: destino);
 
@@ -470,7 +478,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
                 style: ButtonStyle(
                   backgroundColor: MaterialStatePropertyAll(_corBotao)
                 ),
-                onPressed: _funcaoBotao != null 
+                onPressed: () => _funcaoBotao != null 
                   ? _funcaoBotao!()
                   : null, 
                 child: Text(_textoBotao)
