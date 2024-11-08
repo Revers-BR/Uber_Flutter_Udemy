@@ -333,7 +333,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
         if(data != null){
 
          _idRequisicao = data["idRequisicao"];
-         final status       = data["status"];
+         final status  = data["status"];
 
          switch (status) {
            case StatusRequisicao.aguardando:

@@ -1,7 +1,11 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:uber_flutter_udemy/model/requisicao_ativa.dart';
+import 'package:uber_flutter_udemy/util/status_requisicao.dart';
+import 'package:uber_flutter_udemy/util/usuario_firebase.dart';
 
 class Corrida extends StatefulWidget {
 
@@ -17,9 +21,15 @@ class _Corrida extends State<Corrida> {
 
   final Set<Marker> _marcadores = {};
 
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   final Completer<GoogleMapController> _googleMapController = Completer<GoogleMapController>();
 
   LocationPermission _locationPermission = LocationPermission.denied;
+
+  Position? _localPosicaoMotorista;
+
+  Map<String, dynamic> _dadosRequisicao = {};
 
   CameraPosition _cameraPosition = const CameraPosition(
           target: LatLng(-23.711993111425905, -46.6249616576713),
@@ -100,6 +110,8 @@ class _Corrida extends State<Corrida> {
             zoom: 19
           );
 
+          _localPosicaoMotorista = position;
+
           _movimentarCameraPosicao(_cameraPosition);
         });
       }
@@ -127,8 +139,123 @@ class _Corrida extends State<Corrida> {
         );
 
         _movimentarCameraPosicao(_cameraPosition);
+
+        _localPosicaoMotorista = position;
       });
     });
+  }
+
+  void _adicionarListenerRequisicao(){
+
+    final String idRequisicao = _dadosRequisicao["id"];
+
+    _firestore.collection("Requisicoes")
+      .doc(idRequisicao)
+      .snapshots()
+      .listen((documento) {
+
+        if(documento.data() != null){
+
+          final Map<String, dynamic> dados = documento.data()!;
+
+          final String status = dados["status"];
+
+          switch (status) {
+            case StatusRequisicao.aguardando:
+              _statusAguardando();
+              break;
+            case StatusRequisicao.aCaminho:
+              _statusACaminho();
+              break;
+          } 
+        }
+      });
+  }
+
+  void _alterarBotaoPrincipal(String texto, Color cor, Function? funcao){
+
+    setState(() {
+      _textoBotao = texto;
+      _corBotao = cor;
+      _funcaoBotao = funcao;
+    });
+  }
+
+  void _statusAguardando(){
+
+    _alterarBotaoPrincipal(
+      "Aceitar corrida", 
+      Colors.blue[300]!,
+      _aceitarCorrida,
+    );
+  }
+
+  void _statusACaminho(){
+
+    _alterarBotaoPrincipal(
+      "A caminho do passageiro", 
+      Colors.grey,
+      null,
+    );
+  }
+
+  void _aceitarCorrida(){
+
+    //Recuperar dados do motorista
+    UsuarioFirebase.getDadosUsuario()
+      .then((motorista){
+
+        motorista.latitude = _localPosicaoMotorista!.latitude;
+        motorista.longitude = _localPosicaoMotorista!.longitude;
+
+        final String idRequisicao = _dadosRequisicao["id"];
+
+        _firestore.collection("Requisicoes")
+          .doc(idRequisicao)
+          .update({
+            "motorista" : motorista.toMap(),
+            "status"    : StatusRequisicao.aCaminho,
+          }).then((_){
+
+            //Atualiza requisicao ativa
+
+            final String idPassageiro = _dadosRequisicao["passageiro"]["id"];
+
+            _firestore.collection("requisicao_ativa")
+              .doc(idPassageiro)
+              .update({
+                "status": StatusRequisicao.aCaminho
+              });
+
+            //Salvar requisicao ativa para motorista
+
+            final RequisicaoAtiva requisicaoAtivaMotorista = RequisicaoAtiva(
+              idRequisicao: idRequisicao, 
+              idUsuario   : motorista.idUsuario!, 
+              status      : StatusRequisicao.aCaminho
+            );
+
+            _firestore.collection("requisicao_ativa_motorista")
+              .doc(idRequisicao)
+              .set(requisicaoAtivaMotorista.toMap());
+          });
+      });
+  }
+
+  void _recuperarRequisicao(){
+
+    final idRequisicao = widget.idRequisicao;
+
+    _firestore.collection("Requisicoes")
+      .doc(idRequisicao).get().then((documento){
+
+        if(documento.data() != null){
+
+          _dadosRequisicao = documento.data()!;
+
+          _adicionarListenerRequisicao();
+        }
+      });
   }
 
   @override
@@ -139,6 +266,7 @@ class _Corrida extends State<Corrida> {
     }
      _recuperaUltimaLocalizacao();
      _addListenerPosicao();
+     _recuperarRequisicao();
   }
 
   @override
@@ -169,7 +297,9 @@ class _Corrida extends State<Corrida> {
                 style: ButtonStyle(
                   backgroundColor: MaterialStatePropertyAll(_corBotao)
                 ),
-                onPressed: () => _funcaoBotao!(), 
+                onPressed: () => _funcaoBotao != null 
+                  ? _funcaoBotao!() 
+                  : (){}, 
                 child: Text(_textoBotao)
               ),
             )
