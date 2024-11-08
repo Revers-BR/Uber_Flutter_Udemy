@@ -236,7 +236,7 @@ class _Corrida extends State<Corrida> {
             );
 
             _firestore.collection("requisicao_ativa_motorista")
-              .doc(idRequisicao)
+              .doc(motorista.idUsuario)
               .set(requisicaoAtivaMotorista.toMap());
           });
       });
@@ -297,9 +297,9 @@ class _Corrida extends State<Corrida> {
                 style: ButtonStyle(
                   backgroundColor: MaterialStatePropertyAll(_corBotao)
                 ),
-                onPressed: () => _funcaoBotao != null 
+                onPressed: _funcaoBotao != null 
                   ? _funcaoBotao!() 
-                  : (){}, 
+                  : null, 
                 child: Text(_textoBotao)
               ),
             )

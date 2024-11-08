@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:uber_flutter_udemy/util/status_requisicao.dart';
+import 'package:uber_flutter_udemy/util/usuario_firebase.dart';
 
 class PainelMotorista extends StatefulWidget {
 
@@ -54,10 +55,31 @@ class _PainelMotorista extends State<PainelMotorista> {
       .listen(_streamController.add);
   }
 
+  void _recuperarRequisicaoAtiva(){
+
+    final String idMotorista = UsuarioFirebase.getUsuarioAtual().uid;
+    _firestore.collection("requisicao_ativa_motorista")
+      .doc(idMotorista)
+      .get().then((requisicaoAtiva){
+
+        if(requisicaoAtiva.data() == null){
+          _adicionarListenerRequisicao();
+        }else{
+          final String idRequisicao = requisicaoAtiva["idRequisicao"];
+          
+          Navigator.pushReplacementNamed(
+            context, 
+            "/corrida",
+            arguments: idRequisicao,
+          );
+        }
+      });
+  }
+
   @override
   void initState() {
     super.initState();
-    _adicionarListenerRequisicao();
+    _recuperarRequisicaoAtiva();
   }
 
   @override

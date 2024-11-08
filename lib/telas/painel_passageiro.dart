@@ -272,7 +272,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       .set( requisicaoAtiva.toMap() );
   }
 
-  void _alterarBotaoPrincipal(String texto, Color cor, Function funcao){
+  void _alterarBotaoPrincipal(String texto, Color cor, Function? funcao){
 
     setState(() {
       _textoBotao = texto;
@@ -300,6 +300,17 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       "Cancelar", 
       Colors.red,
       _cancelarUber
+    );
+  }
+
+  void _statusACaminho(){
+
+    _exibirCaixaDestino = false;
+
+    _alterarBotaoPrincipal(
+      "Motorista a Caminho", 
+      Colors.grey,
+      null
     );
   }
 
@@ -336,9 +347,12 @@ class _PainelPassageiro extends State<PainelPassageiro> {
          final status  = data["status"];
 
          switch (status) {
-           case StatusRequisicao.aguardando:
-             _statusCancelarUber();
-             break;
+          case StatusRequisicao.aguardando:
+            _statusCancelarUber();
+            break;
+          case StatusRequisicao.aCaminho:
+            _statusACaminho();
+            break;
          } 
         }else {
           _statusUberNaoChamado();
@@ -456,7 +470,9 @@ class _PainelPassageiro extends State<PainelPassageiro> {
                 style: ButtonStyle(
                   backgroundColor: MaterialStatePropertyAll(_corBotao)
                 ),
-                onPressed: () => _funcaoBotao!(), 
+                onPressed: _funcaoBotao != null 
+                  ? _funcaoBotao!()
+                  : null, 
                 child: Text(_textoBotao)
               ),
             )
