@@ -338,12 +338,33 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       });
   }
 
-  void _adicionarListenerRequisicaoAtiva(){
-
+  void _recuperarRequisicaoAtiva(){
+    
     final User passageiro = UsuarioFirebase.getUsuarioAtual();
     
     _firestore.collection("requisicao_ativa")
       .doc(passageiro.uid)
+      .get()
+      .then((documento){
+
+        if(documento.data() != null){
+
+          final Map<String, dynamic > dados = documento.data()!;
+
+          _idRequisicao = dados["id_requisicao"];
+
+          _adicionarListenerRequisicao(_idRequisicao!);
+
+        }else {
+          _statusUberNaoChamado();
+        }
+      });
+  }
+
+  void _adicionarListenerRequisicao( String idRequisicao){
+
+    _firestore.collection("requisicoes")
+      .doc(idRequisicao)
       .snapshots()
       .listen((documento) {
 
@@ -351,19 +372,17 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
         if(data != null){
 
-         _idRequisicao = data["idRequisicao"];
-         final status  = data["status"];
+          _idRequisicao = data["idRequisicao"];
+          final status  = data["status"];
 
-         switch (status) {
-          case StatusRequisicao.aguardando:
-            _statusCancelarUber();
-            break;
-          case StatusRequisicao.aCaminho:
-            _statusACaminho();
-            break;
-         } 
-        }else {
-          _statusUberNaoChamado();
+          switch (status) {
+            case StatusRequisicao.aguardando:
+              _statusCancelarUber();
+              break;
+            case StatusRequisicao.aCaminho:
+              _statusACaminho();
+              break;
+          } 
         }
       });
   }
@@ -374,9 +393,10 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     if(_locationPermission != LocationPermission.always){
       _checkPermission();
     }
+    _recuperarRequisicaoAtiva();
      _recuperaUltimaLocalizacao();
      _addListenerPosicao();
-     _adicionarListenerRequisicaoAtiva();
+     //_adicionarListenerRequisicaoAtiva();
   }
 
   @override
