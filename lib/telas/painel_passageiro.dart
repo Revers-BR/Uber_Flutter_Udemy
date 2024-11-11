@@ -26,8 +26,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-
-  final Set<Marker> _marcadores = {};
+  Set<Marker> _marcadores = {};
 
   final List<String> _itensMenu = [
     "Configurações","Deslogar"
@@ -38,6 +37,10 @@ class _PainelPassageiro extends State<PainelPassageiro> {
   final TextEditingController _destinoController = TextEditingController(text: "Estrada do rufino, 937");
 
   LocationPermission _locationPermission = LocationPermission.denied;
+
+  StreamSubscription<Position>? _positionStream;
+
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _subscriptionRequisicao;
   
   Map<String, dynamic>? _dadosRequisicao;
 
@@ -52,7 +55,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
   CameraPosition _cameraPosition = const CameraPosition(
           target: LatLng(-23.711993111425905, -46.6249616576713),
-          zoom: 16
+          zoom: 18
   );
 
   void _selectionarMenu(String itemSelecionado){
@@ -93,7 +96,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
         setState(() {
           _cameraPosition = CameraPosition(
             target: LatLng(latitude, longitude),
-            zoom: 19
+            zoom: 18
           );
 
           _movimentarCameraPosicao(_cameraPosition);
@@ -120,8 +123,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       distanceFilter: 1
     );
 
-    Geolocator.getPositionStream(locationSettings: locationSettings)
-      .listen( (position){
+    _positionStream =  Geolocator.getPositionStream(locationSettings: locationSettings).listen( (position){
 
         if(_idRequisicao != null && _idRequisicao!.isNotEmpty){
 
@@ -132,7 +134,10 @@ class _PainelPassageiro extends State<PainelPassageiro> {
           UsuarioFirebase.atulaizarDadosLocalizacao(_idRequisicao!, posicao);
 
         }else {
-          setState( () => _localPosicaoPassageiro = position);
+          setState( (){
+            _localPosicaoPassageiro = position;
+            _statusUberNaoChamado();
+          });
         }
       });
   }
@@ -175,6 +180,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
         icon: icon
       );
 
+      if(_marcadores.isNotEmpty)_marcadores.removeWhere((element) => element.markerId == marcadorPassageiro.markerId);
+      
       _marcadores.add(marcadorPassageiro);
     });
   }
@@ -284,11 +291,15 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
   void _alterarBotaoPrincipal(String texto, Color cor, Function? funcao){
 
-    setState(() {
-      _textoBotao = texto;
-      _corBotao = cor;
-      _funcaoBotao = funcao;
-    });
+    if(mounted){
+
+      setState(() {
+        _textoBotao = texto;
+        _corBotao = cor;
+        _funcaoBotao = funcao;
+      });
+    }
+
   }
 
   void _statusUberNaoChamado(){
@@ -301,16 +312,20 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       _chamarUber
     );
 
-    final LatLng position = LatLng(
-      _localPosicaoPassageiro!.latitude, 
-      _localPosicaoPassageiro!.longitude
-    );
+    if(_localPosicaoPassageiro != null){
 
-    _exibirMarcadores(position);
-    final CameraPosition cameraPosition = CameraPosition(
-      target: position
-    );
-    _movimentarCameraPosicao(cameraPosition);
+      final LatLng position = LatLng(
+        _localPosicaoPassageiro!.latitude, 
+        _localPosicaoPassageiro!.longitude
+      );
+
+      _exibirMarcadores(position);
+      final CameraPosition cameraPosition = CameraPosition(
+        target: position,
+        zoom: 18
+      );
+      _movimentarCameraPosicao(cameraPosition);
+    }
   }
 
   void _statusAguardandoUber(){
@@ -323,8 +338,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       _cancelarUber
     );
 
-    final latitude = _dadosRequisicao!["passageiro"]["latitute"];
-    final longitude = _dadosRequisicao!["passageiro"]["longitute"];
+    final latitude = _dadosRequisicao!["passageiro"]["latitude"];
+    final longitude = _dadosRequisicao!["passageiro"]["longitude"];
 
     final LatLng position = LatLng(
       latitude, longitude
@@ -332,9 +347,48 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
     _exibirMarcadores(position);
     final CameraPosition cameraPosition = CameraPosition(
-      target: position
+      target: position,
+      zoom: 18
     );
     _movimentarCameraPosicao(cameraPosition);
+  }
+
+  Future<Marker> _criarMarcador(String icone, LatLng posicao, String idMarcador, String titulo) async {
+    
+    final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+
+    final ImageConfiguration configuration = ImageConfiguration(
+      devicePixelRatio: devicePixelRatio
+    );
+
+    final assetName = "imagens/$icone.png";
+    
+    // ignore: deprecated_member_use
+    final icon = await BitmapDescriptor.fromAssetImage(configuration, assetName);
+      
+    final Marker marcador = Marker(
+      markerId: MarkerId("marcador-$idMarcador"),
+      position: posicao, 
+      infoWindow: InfoWindow(title: titulo),
+      icon: icon
+    );
+
+    return marcador;
+  }
+
+  void _exibirDoisMarcadores(LatLng posicaoPassageiro, LatLng posicaoMotorista) async {
+
+    final Set<Marker> marcadores = {};
+
+    final marcadorMotorista  = await _criarMarcador("motorista", posicaoMotorista, "motorista", "Localização do motorista");
+
+    final marcadorPassageiro = await _criarMarcador("passageiro", posicaoPassageiro, "passageiro", "Localização do passageiro");
+
+    marcadores.addAll({
+      marcadorPassageiro,
+      marcadorMotorista
+    });
+    setState(() => _marcadores = marcadores);
   }
 
   void _statusACaminho(){
@@ -346,6 +400,59 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       Colors.grey,
       null
     );
+
+    LatLng posicaoPassageiro = LatLng(
+      _dadosRequisicao!["passageiro"]["latitude"], 
+      _dadosRequisicao!["passageiro"]["longitude"]
+    );
+
+    LatLng posicaoMotorista = LatLng(
+      _dadosRequisicao!["motorista"]["latitude"], 
+      _dadosRequisicao!["motorista"]["longitude"]
+    );
+
+    _exibirDoisMarcadores(posicaoPassageiro, posicaoMotorista);
+
+    double sLat, nLat, sLon, nLon;
+
+    if(posicaoMotorista.latitude <= posicaoPassageiro.latitude){
+      sLat = posicaoMotorista.latitude;
+      nLat = posicaoPassageiro.latitude;
+    }else{
+      sLat = posicaoPassageiro.latitude;
+      nLat = posicaoMotorista.latitude;
+    }
+
+    if(posicaoMotorista.longitude <= posicaoPassageiro.longitude){
+      sLon = posicaoMotorista.longitude;
+      nLon = posicaoPassageiro.longitude;
+    }else{
+      sLon = posicaoPassageiro.longitude;
+      nLon = posicaoMotorista.longitude;
+    }
+
+    LatLng southwest = LatLng( sLat, sLon);
+
+    LatLng northeast = LatLng(nLat, nLon );
+
+    LatLngBounds latLngBounds = LatLngBounds(
+      southwest: southwest, 
+      northeast: northeast
+    );
+
+    _movimentarCameraBounds(latLngBounds);
+  }
+
+  void _movimentarCameraBounds(LatLngBounds latLngBounds){
+    
+    _googleMapController.future.then((googleMapController){
+      googleMapController.moveCamera(
+        CameraUpdate.newLatLngBounds(
+          latLngBounds, 
+          100
+        )
+      );
+    });
   }
 
   void _cancelarUber(){
@@ -377,7 +484,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
           final Map<String, dynamic > dados = documento.data()!;
 
-          _idRequisicao = dados["id_requisicao"];
+          _idRequisicao = dados["idRequisicao"];
 
           _adicionarListenerRequisicao(_idRequisicao!);
 
@@ -389,7 +496,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
   void _adicionarListenerRequisicao( String idRequisicao){
 
-    _firestore.collection("requisicoes")
+    _subscriptionRequisicao = _firestore.collection("Requisicoes")
       .doc(idRequisicao)
       .snapshots()
       .listen((documento) {
@@ -400,7 +507,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
 
           _dadosRequisicao = data;
 
-          _idRequisicao = data["idRequisicao"];
+          _idRequisicao = data["id"];
           final status  = data["status"];
 
           switch (status) {
@@ -421,10 +528,18 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     if(_locationPermission != LocationPermission.always){
       _checkPermission();
     }
+    _addListenerPosicao();
+    
     _recuperarRequisicaoAtiva();
      //_recuperaUltimaLocalizacao();
-     _addListenerPosicao();
      //_adicionarListenerRequisicaoAtiva();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    if(_positionStream != null) _positionStream!.cancel();
+    if(_subscriptionRequisicao != null)_subscriptionRequisicao!.cancel();
   }
 
   @override

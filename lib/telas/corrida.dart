@@ -33,7 +33,7 @@ class _Corrida extends State<Corrida> {
 
   CameraPosition _cameraPosition = const CameraPosition(
           target: LatLng(-23.711993111425905, -46.6249616576713),
-          zoom: 16
+          zoom: 18
   );
 
   String _textoBotao = "Aceitar corrida";
@@ -191,7 +191,7 @@ class _Corrida extends State<Corrida> {
 
     CameraPosition cameraPosition = CameraPosition(
       target: position,
-      zoom: 19
+      zoom: 18
     );
 
     _movimentarCameraPosicao(cameraPosition);
