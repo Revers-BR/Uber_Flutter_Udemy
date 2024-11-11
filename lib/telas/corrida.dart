@@ -332,7 +332,7 @@ class _Corrida extends State<Corrida> {
       _checkPermission();
     }
     _adicionarListenerRequisicao();
-    _recuperaUltimaLocalizacao();
+    //_recuperaUltimaLocalizacao();
     _addListenerPosicao();
      //_recuperarRequisicao();
   }
