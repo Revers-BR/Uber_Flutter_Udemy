@@ -9,6 +9,7 @@ import 'package:uber_flutter_udemy/model/destino.dart';
 import 'package:uber_flutter_udemy/model/requisicao.dart';
 import 'package:uber_flutter_udemy/model/requisicao_ativa.dart';
 import 'package:uber_flutter_udemy/model/usuario.dart';
+import 'package:uber_flutter_udemy/util/marcador.dart';
 import 'package:uber_flutter_udemy/util/status_requisicao.dart';
 import 'package:uber_flutter_udemy/util/usuario_firebase.dart';
 
@@ -134,10 +135,8 @@ class _PainelPassageiro extends State<PainelPassageiro> {
           UsuarioFirebase.atulaizarDadosLocalizacao(_idRequisicao!, posicao);
 
         }else {
-          setState( (){
-            _localPosicaoPassageiro = position;
-            _statusUberNaoChamado();
-          });
+          setState( () => _localPosicaoPassageiro = position);
+          _statusUberNaoChamado();
         }
       });
   }
@@ -286,7 +285,10 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       .doc(requisicaoAtiva.idUsuario)
       .set( requisicaoAtiva.toMap() );
 
-    _statusAguardandoUber();
+    if(_subscriptionRequisicao  == null){
+      
+      _adicionarListenerRequisicao(requisicao.id);
+    }
   }
 
   void _alterarBotaoPrincipal(String texto, Color cor, Function? funcao){
@@ -353,7 +355,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     _movimentarCameraPosicao(cameraPosition);
   }
 
-  Future<Marker> _criarMarcador(String icone, LatLng posicao, String idMarcador, String titulo) async {
+  Future<Marker> _criarMarcador(String icone, LatLng posicao, String titulo) async {
     
     final double devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
 
@@ -367,7 +369,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     final icon = await BitmapDescriptor.fromAssetImage(configuration, assetName);
       
     final Marker marcador = Marker(
-      markerId: MarkerId("marcador-$idMarcador"),
+      markerId: MarkerId("marcador-$titulo"),
       position: posicao, 
       infoWindow: InfoWindow(title: titulo),
       icon: icon
@@ -376,18 +378,16 @@ class _PainelPassageiro extends State<PainelPassageiro> {
     return marcador;
   }
 
-  void _exibirDoisMarcadores(LatLng posicaoPassageiro, LatLng posicaoMotorista) async {
+  void _exibirDoisMarcadores(Marcador marcador1, Marcador marcador2) async {
 
     final Set<Marker> marcadores = {};
 
-    final marcadorMotorista  = await _criarMarcador("motorista", posicaoMotorista, "motorista", "Localização do motorista");
+    final m1 = await _criarMarcador(marcador1.icone, marcador1.localizcao, marcador1.titulo);
 
-    final marcadorPassageiro = await _criarMarcador("passageiro", posicaoPassageiro, "passageiro", "Localização do passageiro");
+    final m2 = await _criarMarcador(marcador2.icone, marcador2.localizcao, marcador2.titulo);
 
-    marcadores.addAll({
-      marcadorPassageiro,
-      marcadorMotorista
-    });
+    marcadores.addAll({ m1, m2 });
+
     setState(() => _marcadores = marcadores);
   }
 
@@ -411,24 +411,71 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       _dadosRequisicao!["motorista"]["longitude"]
     );
 
-    _exibirDoisMarcadores(posicaoPassageiro, posicaoMotorista);
+    final Marcador marcador1 = Marcador("passageiro", posicaoPassageiro, "local Passageiro");
+
+    final Marcador marcador2 = Marcador("motorista", posicaoMotorista, "local Motorista");
+
+    _exibirDoisMarcadores(marcador1, marcador2);
+
+    _movimentarCameraBounds(marcador1.localizcao, marcador2.localizcao);
+  }
+
+  void _statusEmViagem(){
+    _exibirCaixaDestino = false;
+
+    _alterarBotaoPrincipal(
+      "Em viagem", 
+      Colors.grey,
+      null
+    );
+
+    final motoristaLatitude = _dadosRequisicao!["motorista"]["latitude"];
+    final motoristaLongitude = _dadosRequisicao!["motorista"]["longitude"];
+
+    final destinoLatitude = _dadosRequisicao!["destino"]["latitude"];
+    final destinoLongitude = _dadosRequisicao!["destino"]["longitude"];
+
+    final Marcador marcador1 = Marcador(
+      "motorista",
+      LatLng(
+        motoristaLatitude, 
+        motoristaLongitude
+      ), 
+      "local motorista"
+    );
+
+    final Marcador marcador2 = Marcador(
+      "destino",
+      LatLng(
+        destinoLatitude, 
+        destinoLongitude
+      ), 
+      "destino passageiro"
+    );
+
+    _exibirDoisMarcadores(marcador1, marcador2);
+
+    _movimentarCameraBounds(marcador1.localizcao, marcador2.localizcao);
+  }
+
+  void _movimentarCameraBounds(LatLng posicao1, LatLng posicao2){
 
     double sLat, nLat, sLon, nLon;
 
-    if(posicaoMotorista.latitude <= posicaoPassageiro.latitude){
-      sLat = posicaoMotorista.latitude;
-      nLat = posicaoPassageiro.latitude;
+    if(posicao1.latitude <= posicao2.latitude){
+      sLat = posicao1.latitude;
+      nLat = posicao2.latitude;
     }else{
-      sLat = posicaoPassageiro.latitude;
-      nLat = posicaoMotorista.latitude;
+      sLat = posicao2.latitude;
+      nLat = posicao1.latitude;
     }
 
-    if(posicaoMotorista.longitude <= posicaoPassageiro.longitude){
-      sLon = posicaoMotorista.longitude;
-      nLon = posicaoPassageiro.longitude;
+    if(posicao1.longitude <= posicao2.longitude){
+      sLon = posicao1.longitude;
+      nLon = posicao2.longitude;
     }else{
-      sLon = posicaoPassageiro.longitude;
-      nLon = posicaoMotorista.longitude;
+      sLon = posicao2.longitude;
+      nLon = posicao1.longitude;
     }
 
     LatLng southwest = LatLng( sLat, sLon);
@@ -439,11 +486,6 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       southwest: southwest, 
       northeast: northeast
     );
-
-    _movimentarCameraBounds(latLngBounds);
-  }
-
-  void _movimentarCameraBounds(LatLngBounds latLngBounds){
     
     _googleMapController.future.then((googleMapController){
       googleMapController.moveCamera(
@@ -517,6 +559,9 @@ class _PainelPassageiro extends State<PainelPassageiro> {
             case StatusRequisicao.aCaminho:
               _statusACaminho();
               break;
+            case StatusRequisicao.viagem:
+              _statusEmViagem();
+              break;
           } 
         }
       });
@@ -565,7 +610,7 @@ class _PainelPassageiro extends State<PainelPassageiro> {
       body: Stack(
         children: [
           GoogleMap(
-            onMapCreated: (controller) => _googleMapController.complete( controller ),
+            onMapCreated: _googleMapController.complete,
             initialCameraPosition: _cameraPosition,
             //myLocationEnabled: true,
             markers: _marcadores,

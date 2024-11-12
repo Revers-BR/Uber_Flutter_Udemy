@@ -25,6 +25,8 @@ class _PainelMotorista extends State<PainelMotorista> {
     "Configurações","Deslogar"
   ];
 
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _streamSubscriptionRequisioes;
+
   void _selectionarMenu(String itemSelecionado){
 
     switch (itemSelecionado) {
@@ -49,7 +51,7 @@ class _PainelMotorista extends State<PainelMotorista> {
 
   void _adicionarListenerRequisicao(){
 
-    _firestore.collection("Requisicoes")
+    _streamSubscriptionRequisioes = _firestore.collection("Requisicoes")
       .where("status", isEqualTo: StatusRequisicao.aguardando)
       .snapshots()
       .listen(_streamController.add);
@@ -154,5 +156,11 @@ class _PainelMotorista extends State<PainelMotorista> {
         },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    if(_streamSubscriptionRequisioes != null)_streamSubscriptionRequisioes!.cancel();
   }
 }

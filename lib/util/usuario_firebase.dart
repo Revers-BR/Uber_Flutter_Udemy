@@ -35,14 +35,14 @@ class UsuarioFirebase {
 
     FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-    ModelUsuario motorista = await getDadosUsuario();
-    motorista.latitude = posicao.latitude;
-    motorista.longitude = posicao.longitude;
+    ModelUsuario usuario = await getDadosUsuario();
+    usuario.latitude = posicao.latitude;
+    usuario.longitude = posicao.longitude;
 
     firestore.collection("Requisicoes")
       .doc( idRequisicao )
         .update({
-          "motorista" : motorista.toMap()
+          usuario.getTipoUsuario.toLowerCase() : usuario.toMap()
         });
   }
 }
